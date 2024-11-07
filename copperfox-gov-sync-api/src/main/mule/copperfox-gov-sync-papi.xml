@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd  http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+    <apikit:config name="copperfox-gov-sync-papi-config" api="resource::3d950d92-ca5e-410c-a6a1-562fec04126b:copperfox-gov-sync-papi:1.0.1:raml:zip:copperfox-gov-sync-papi.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <flow name="copperfox-gov-sync-papi-main">
+        <http:listener config-ref="HTTP_Listener_config" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="copperfox-gov-sync-papi-config" />
+        <error-handler ref="global-error-handler" />
+    </flow>
+    <flow name="get:\records\(recordId):copperfox-gov-sync-papi-config">
+        <ee:transform doc:name="recordId">
+            <ee:variables>
+                <ee:set-variable variableName="recordId">attributes.uriParams.'recordId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <async doc:name="Async" doc:id="1f9ea028-fa92-472f-a113-47872da0c169" >
+			<flow-ref doc:name="process-file-flow" doc:id="a35481f2-bfbe-445e-8ae1-f6538f4b837e" name="process-file-flow" />
+		</async>
+		<ee:transform doc:name="Response" doc:id="ed0583f8-9bd2-4937-b822-a26cfaceb0f5" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "status" : "In-progress",
+  "message": "Files are being processed.",
+  "correlationId": correlationId,
+  "timeStamp": now()
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+    </flow>
+</mule>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+	xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="7aaa099d-bd30-4d8d-b96b-769596ba115d" >
+		<http:listener-connection host="${http.host}" port="${http.port}" readTimeout="${http.readTimeOut}" />
+	</http:listener-config>
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="df8b11db-345b-480e-9efa-0363dd99f29a" >
+		<salesforce:basic-connection username="${sf.userName}" password="${secure::sf.password}" securityToken="${secure::sf.securityToken}" url="${sf.authUrl}" loginRequestTimeout="5" loginRequestTimeoutUnit="MINUTES">
+			<reconnection >
+				<reconnect frequency="${untilSuccessful.retryFrequency}" count="${untilSuccessful.retryCount}" />
+			</reconnection>
+		</salesforce:basic-connection>
+	</salesforce:sfdc-config>
+	<configuration doc:name="Configuration" doc:id="f35ff035-143e-42eb-a108-0043c4255c73" defaultErrorHandler-ref="global-error-handler" />
+	<configuration-properties doc:name="Configuration properties" doc:id="85d68d00-0b1f-4029-b300-3aca2726f553" file="config/${mule_env}.yaml" />
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="5dc03845-d4b2-4679-90b7-6eaade34bb90" file="config/${mule_env}.yaml" key="${mule_key}" />
+	<api-gateway:autodiscovery apiId="${autoDiscovery.id}" ignoreBasePath="false" doc:name="API Autodiscovery" doc:id="507810b5-20fd-4161-a6e8-64c365d9e3a1" flowRef="copperfox-gov-sync-papi-main" />
+	<email:smtp-config name="Email_SMTP" doc:name="Email SMTP" doc:id="2c04178e-3030-41d3-b571-d1f3121916a9" >
+		<email:smtp-connection host="${mail.host}" port="${mail.port}" user="${mail.user}" password="${secure::mail.password}" >
+			<reconnection >
+				<reconnect frequency="${mail.reconnectFrequency}" count="${mail.reconnectCount}" />
+			</reconnection>
+			<email:properties >
+				<email:property key="${mail.propertyKey}" value="${mail.propertyValue}" />
+			</email:properties>
+		</email:smtp-connection>
+	</email:smtp-config>
+	<configuration-properties doc:name="Configuration properties" doc:id="0ceca3ca-781d-45c1-8c88-b530d118f949" file="config/common.yaml" />
+	<global-property doc:name="Global Property" doc:id="cdb84d36-fdea-45e7-a141-867c6215aaf9" name="mule_env" value="common" />
+</mule>

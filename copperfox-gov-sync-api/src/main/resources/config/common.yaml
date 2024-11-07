@@ -1,0 +1,16 @@
+http:
+  host: "0.0.0.0"
+  port: "8081"
+  readTimeOut: "30000"
+
+mail:
+  host: "smtp.gmail.com"
+  port: "587"
+  propertyKey : "mail.smtp.starttls.required"
+  propertyValue: "true"
+  reconnectCount: "3"
+  reconnectFrequency: "30000"
+  
+untilSuccessful:
+  retryCount: "3"
+  retryFrequency: "30000"

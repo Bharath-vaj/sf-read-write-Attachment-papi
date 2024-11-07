@@ -1,0 +1,17 @@
+sf:
+  userName: "samintegration@mule.com"
+  password: "![7I1Mom9Kg2YnoX71JX544g==]"
+  securityToken: "![Bg90pZaDv8CLk+me/HjaTKutFy8tA2BDJz3ytjdR3X8=]"
+  authUrl: "https://copperfoxtechnologies-dev-ed.develop.my.salesforce.com/services/Soap/u/58.0"
+  
+mail:
+  user: "info.mytribeapp@gmail.com"
+  password: "![yqp+g/T1jwSlEOtRIOO7pUigoz2nR1P96UbBzvV3cC4=]"
+  fromAddress: "info.mytribeapp@gmail.com"
+  toAddress: "info.mytribeapp@gmail.com,nishasadha22@gmail.com,bharathvaj.tech@gmail.com"
+  contentType: "text/html"
+  subject: "Response update for copperfox-gov-sync-papi."
+  content: "This mail is to notify that health-ehr-inventory-api has failed due to below attached error."
+ 
+autoDiscovery:
+ id: "20054428"

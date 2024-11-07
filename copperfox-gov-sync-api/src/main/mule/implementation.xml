@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:sfdc-marketing-cloud="http://www.mulesoft.org/schema/mule/sfdc-marketing-cloud"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/sfdc-marketing-cloud http://www.mulesoft.org/schema/mule/sfdc-marketing-cloud/current/mule-sfdc-marketing-cloud.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
+	<flow name="process-file-flow" doc:id="c0965dee-eef7-4227-abce-f8499a80e48d" >
+		<logger level="INFO" doc:name="LOG :: Start Flow" doc:id="5995dea6-39b4-4a39-b41d-d730c50c58f5" message='#[{&#10;	message : "start of the flow",&#10;	flowName: flow.name,&#10;	keyData: vars.recordId,&#10;	timeStamp: now()&#10;}]'/>
+		<salesforce:query doc:name="Retrieve subscripberKey Status" doc:id="57a2a6a9-546b-4e37-84fb-453efba9d249" config-ref="Salesforce_Config">
+			<error-mapping sourceType="SALESFORCE:INVALID_INPUT" targetType="SFAPP:INVALID_SUBSCRIBERKEY" />
+			<salesforce:salesforce-query><![CDATA[SELECT IsActive FROM User where Id = ':subscriberKey']]></salesforce:salesforce-query>
+			<salesforce:parameters><![CDATA[#[output application/java
+---
+{
+	subscriberKey : attributes.queryParams.subscriberKey
+}]]]></salesforce:parameters>
+		</salesforce:query>
+		<ee:transform doc:name="validate subcriberKey" doc:id="7a9246a4-db2c-49fd-8013-b9532ef29915" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+(payload[0].IsActive as Boolean) default false]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<choice doc:name="if user validated" doc:id="3c4fafb7-a612-4aad-bdb9-8d199203411e" >
+			<when expression="#[payload]">
+				<salesforce:query doc:id="0083a021-4727-4b7e-97d5-a26b27575942" config-ref="Salesforce_Config" doc:name="Retrieve ContentDocumentId by recordId">
+					<salesforce:salesforce-query><![CDATA[SELECT ContentDocumentId FROM ContentDocumentLink WHERE LinkedEntityId =':id'
+]]></salesforce:salesforce-query>
+					<salesforce:parameters><![CDATA[#[output application/java
+---
+{
+	id : vars.recordId
+}]]]></salesforce:parameters>
+				</salesforce:query>
+				<ee:transform doc:name="Response" doc:id="dee3db44-82b8-43c9-b0e6-96cb969e8fdd">
+					<ee:message>
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map (record) -> record.ContentDocumentId]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="fileData" ><![CDATA[[]]]></ee:set-variable>
+						<ee:set-variable variableName="fileSize" ><![CDATA[0]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<choice doc:name="Check " doc:id="f7b0e9b2-76e0-451c-988f-df904041762e">
+					<when expression="!isEmpty(payload)">
+						<foreach doc:name="For Each" doc:id="9096ed1f-9bc8-4fac-92dc-ddc4dad4cd98">
+					<salesforce:query doc:name="Query fileSize" doc:id="2614d476-20a1-4869-ba03-730cb26e2d1a" config-ref="Salesforce_Config">
+					<salesforce:salesforce-query><![CDATA[SELECT ContentSize, FileType,ContentDocumentId FROM ContentVersion where ContentDocumentId = ':docId']]></salesforce:salesforce-query>
+						<salesforce:parameters><![CDATA[#[output application/java
+---
+{
+	docId : payload
+}]]]></salesforce:parameters>
+				</salesforce:query>
+					<ee:transform doc:name="FileSize" doc:id="7ae9018f-6be3-4df2-a2a4-deb56b0bef2a">
+						<ee:message>
+						</ee:message>
+						<ee:variables>
+							<ee:set-variable variableName="fileSize"><![CDATA[%dw 2.0
+output application/json
+---
+if(payload[0].FileType == "CSV")
+(vars.fileSize default 0) + payload.ContentSize[0] as Number
+else 0]]></ee:set-variable>
+							<ee:set-variable variableName="csvFileIds"><![CDATA[%dw 2.0
+output application/json
+---
+if(payload[0].FileType == "CSV")
+(vars.csvFileIds default []) + payload.ContentDocumentId[0] 
+else (vars.csvFileIds default [])]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+				</foreach>
+						<choice doc:name="Check file count" doc:id="a4868857-c736-4ae9-a493-7c4550074193">
+							<when expression="#[sizeOf(vars.csvFileIds) != 1]">
+								<choice doc:name="check file size &lt; 10Mb" doc:id="55be8afa-bdc0-41fb-a8cf-a059df6a7d53">
+					<when expression="#[vars.fileSize &lt;= 10485760]">
+						<foreach doc:name="For Each" doc:id="5f0804af-9e47-4175-83b1-411643771887" collection="#[payload]">
+			<salesforce:query doc:name="Retrieve content by ContentDocumentId" doc:id="d386d1bb-a150-4a37-bddc-84b65adf462f" config-ref="Salesforce_Config">
+								<salesforce:salesforce-query><![CDATA[SELECT Title, VersionData, ContentDocumentId, FileType FROM ContentVersion where ContentDocumentId = ':docId']]></salesforce:salesforce-query>
+								<salesforce:parameters><![CDATA[#[output application/java
+---
+{
+	docId : payload
+}]]]></salesforce:parameters>
+							</salesforce:query>
+							<ee:transform doc:name="Response" doc:id="e66c6c87-e33b-4ec5-abf6-1edafc598084">
+							<ee:message>
+								<ee:set-payload><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output application/csv
+var decodedContent = fromBase64(payload[0].VersionData) as String
+var csvFormat = decodedContent replace "\\n" with "\n"
+---
+if ( payload[0].FileType == "CSV" ) (read(csvFormat, "application/csv"))
+else {
+}]]></ee:set-payload>
+							</ee:message>
+							<ee:variables />
+						</ee:transform>
+							<ee:transform doc:name="append all files data" doc:id="547f6d3a-daa0-4577-9cda-245a5fabb99e">
+								<ee:message>
+								</ee:message>
+								<ee:variables>
+									<ee:set-variable variableName="fileData"><![CDATA[%dw 2.0
+output application/json
+---
+(vars.fileData) ++ payload]]></ee:set-variable>
+								</ee:variables>
+							</ee:transform>
+		
+</foreach>
+						<flow-ref doc:name="post-consolidated-file-to-parent-record-flow" doc:id="33adc28d-7684-4e53-bf23-913d4ec07162" name="post-consolidated-file-to-parent-record-flow" />
+						<salesforce:delete doc:name="delete all existing files" doc:id="4395dbdf-d3fa-4cab-84f9-a8df70009afa" config-ref="Salesforce_Config">
+							<salesforce:ids><![CDATA[#[vars.csvFileIds]]]></salesforce:ids>
+						</salesforce:delete>
+						<ee:transform doc:name="response payload" doc:id="084b0a1b-bedc-4137-83e1-3b95899f2e73">
+							<ee:message>
+								<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "status" : "success",
+  "message": "File replaced successfully",
+  "correlationId": correlationId,
+  "timeStamp": now()
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+										<flow-ref doc:name="Call notification-sub-flow" doc:id="4a73bd2f-8983-4dd7-8401-932415bbec2c" name="notification-sub-flow"/>
+					
+</when>
+							<otherwise>
+						<ee:transform doc:name="response payload" doc:id="0d628f3b-7a61-4952-bc0b-5281cd578a53">
+							<ee:message>
+								<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "status" : "success",
+  "message": "The final file size exceeds the limit",
+  "correlationId": correlationId,
+  "timeStamp": now()
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+										<logger level="INFO" doc:name="Log response" doc:id="15d62f0e-417c-44eb-905d-8006c2bb8c00" message="#[payload]" />
+										<flow-ref doc:name="Call notification-sub-flow" doc:id="d4f2775d-7ca0-4ad2-a1e5-ec3841f5ffb3" name="notification-sub-flow"/>
+					
+</otherwise>
+				</choice>
+							</when>
+							<otherwise >
+								<ee:transform doc:name="response" doc:id="534ef288-861f-4474-b18c-e57b98277169" >
+									<ee:message >
+										<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "status" : "success",
+  "message": "Found only one attachment in the record.",
+  "correlationId": correlationId,
+  "timeStamp": now()
+}]]></ee:set-payload>
+									</ee:message>
+								</ee:transform>
+								<logger level="INFO" doc:name="Log response" doc:id="a65c0c32-0c6f-4af0-9b33-65ea16a6bc64" message="#[payload]"/>
+								<flow-ref doc:name="Call notification-sub-flow" doc:id="f9dfabef-37e2-4c7f-ac38-115230d3738f" name="notification-sub-flow"/>
+							</otherwise>
+						</choice>
+					</when>
+					<otherwise >
+						<ee:transform doc:name="response payload" doc:id="ab85a723-04e1-4fde-af95-4cd3c212d227" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "status" : "failure",
+  "message": "No files found in the record",
+  "correlationId": correlationId,
+  "timeStamp": now()
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+						<logger level="INFO" doc:name="Log response" doc:id="2a1edb2d-0580-4379-9093-deb9b1b63be8" message="#[payload]" />
+						<flow-ref doc:name="Call notification-sub-flow" doc:id="4ed0231f-f93c-4fe8-8d8a-2f2ba9b60668" name="notification-sub-flow"/>
+					</otherwise>
+				</choice>
+			
+</when>
+			<otherwise >
+				<raise-error doc:name="SFAPP:INVALID_USER" doc:id="24782607-6e26-42b9-8aa8-63600830a00c" type="SFAPP:INVALID_USER"/>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="LOG :: End FLow" doc:id="be748693-90a5-4fe8-8c57-f175bfb5fc34" message='#[{&#10;	message : "end of the flow",&#10;	flowName: flow.name,&#10;	keyData: vars.recordId,&#10;	timeStamp: now()&#10;}]'/>
+	
+</flow>
+	<flow name="post-consolidated-file-to-parent-record-flow" doc:id="8080d0b3-1373-4eef-83eb-94200310675e" >
+		<ee:transform doc:name="Map ConsolidatedFile to ContentVersion object" doc:id="798d83ba-9e22-4871-af41-abe527861755" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output application/java
+var fileName = now () as String  {format: "MMddyyyy"} ++ "-" ++ "mergedFile.csv"
+---
+[{
+    PathOnClient: fileName,
+    VersionData: write(vars.fileData,"application/csv") as Binary {
+        class: "byte[]"
+    }
+}]
+
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<until-successful maxRetries="${untilSuccessful.retryCount}" doc:name="Until Successful" doc:id="c7bbe5fa-6baf-40c7-adab-af7003dd55a5" millisBetweenRetries="${untilSuccessful.retryFrequency}">
+			<salesforce:create doc:name="ContentVersion" doc:id="9e20a2fc-bb6c-4f0b-8b3c-bfb231dab255" config-ref="Salesforce_Config" type="ContentVersion"/>
+		</until-successful>
+		<salesforce:query doc:name="get Content Document Id" doc:id="2b4a8af4-0057-416c-ba2a-3690b1b53707" config-ref="Salesforce_Config" target="ContentDocumentId" targetValue="#[payload[0].ContentDocumentId]">
+			<salesforce:salesforce-query ><![CDATA[SELECT ContentDocumentId FROM ContentVersion WHERE Id = ':docId']]></salesforce:salesforce-query>
+			<salesforce:parameters ><![CDATA[#[output application/java
+---
+{
+	"docId" : payload.items[0].id
+}]]]></salesforce:parameters>
+		</salesforce:query>
+		<ee:transform doc:name="Map Document Link" doc:id="af744db5-895e-4d81-b0ac-426fd467af5a">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+[{
+    LinkedEntityId: vars.recordId,
+    ContentDocumentId: vars.ContentDocumentId
+}]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<until-successful maxRetries="${untilSuccessful.retryCount}" doc:name="Until Successful" doc:id="1ed0eb33-314f-47e0-b4c5-5120cb817034" millisBetweenRetries="${untilSuccessful.retryFrequency}">
+			<salesforce:create doc:name="Create Content Document Link" doc:id="d088c07f-64fb-4cb4-8700-abe34888ab93" config-ref="Salesforce_Config" type="ContentDocumentLink"/>
+		</until-successful>
+		<logger level="INFO" doc:name="consolidatedFile attachment completed" doc:id="c6da97d1-0376-43ae-b0de-d5fb5f238768" message="#[vars.ContentDocumentId]"/>
+	</flow>
+</mule>

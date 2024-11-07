@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<error-handler name="global-error-handler" doc:id="93911b9a-0fb9-4d6d-8772-1859f226f8bb" >
+	        <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="665a48d1-1af6-465b-ad61-403841b16d5b" type="APIKIT:BAD_REQUEST"> 
+            <set-variable value="400" doc:name="Set httpStatus" doc:id="b03d32a5-6023-4651-b404-5987f624034f" variableName="httpStatus"/>  
+            <flow-ref doc:name="common-error-sub-flow" doc:id="11289bba-4edf-480b-b294-9ed9918e5e30" name="common-error-sub-flow"/> 
+        </on-error-propagate>  
+        <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="ddfaa706-dd94-40ef-9df0-0da20695bd1d" type="APIKIT:NOT_FOUND"> 
+            <set-variable value="404" doc:name="Set httpStatus" doc:id="c09fbea2-4b29-42d3-af5d-096b2e62e2fa" variableName="httpStatus"/>  
+            <flow-ref doc:name="common-error-sub-flow" doc:id="5f7f8303-74f7-468d-8451-f42b93d5de3d" name="common-error-sub-flow"/> 
+        </on-error-propagate>  
+        <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="406e6c49-9679-43d1-9e4f-3fae75b49070" type="APIKIT:METHOD_NOT_ALLOWED"> 
+            <set-variable value="405" doc:name="Set httpStatus" doc:id="d6b3a7ef-2110-4451-834f-90b182f84c47" variableName="httpStatus"/>  
+            <flow-ref doc:name="common-error-sub-flow" doc:id="d92ede5e-ac8a-47d4-b14b-93ffa1afdfc7" name="common-error-sub-flow"/> 
+        </on-error-propagate>  
+        <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="a8775eff-3364-4526-aaed-771c8ff3ada0" type="APIKIT:NOT_ACCEPTABLE"> 
+            <set-variable value="406" doc:name="Set httpStatus" doc:id="c7555dd1-62d2-47bc-8aac-46db6fb62943" variableName="httpStatus"/>  
+            <flow-ref doc:name="common-error-sub-flow" doc:id="aae824ff-08d6-4967-8114-009552c4dce6" name="common-error-sub-flow"/> 
+        </on-error-propagate>  
+        <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="8cd3c01c-3fd1-4772-98f9-718255b603da" type="APIKIT:UNSUPPORTED_MEDIA_TYPE"> 
+            <set-variable value="415" doc:name="httpStatus" doc:id="3b910d58-578d-4b4f-9c97-92559075c9d5" variableName="httpStatus"/>  
+            <flow-ref doc:name="common-error-sub-flow" doc:id="c50068dd-37ca-4dbc-bd77-5082f9197d64" name="common-error-sub-flow"/> 
+        </on-error-propagate>  
+        <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="bdc0cb86-5890-46c4-884f-a991e6825695" type="APIKIT:NOT_IMPLEMENTED"> 
+            <set-variable value="501" doc:name="Set httpStatus" doc:id="bbda4004-2dbd-4641-937e-fdc57e56b367" variableName="httpStatus"/>  
+            <flow-ref doc:name="common-error-sub-flow" doc:id="07843d7c-8415-4fd7-b530-ab3bcf59775e" name="common-error-sub-flow"/> 
+        </on-error-propagate>  
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="ca605a5b-9bb1-4529-99ef-0e6a52aaaf5d" type="SFAPP:INVALID_USER">
+			<set-variable value="#[400]" doc:name="httpStatus" doc:id="cb798590-6b95-45e7-bc37-08fd4c200688" variableName="httpStatus"/>
+			<ee:transform doc:name="error payload" doc:id="ad86533a-ecfa-48f3-b223-cb29454729cd" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "status" : "failed",
+  "message": "error",
+  "timeStamp": now(),
+  "error": {
+  	reason: "Invalid user or Inactive",
+  	description: "The provided user subscriber key is not valid"
+  },
+  "correlationId": correlationId
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<set-variable value="#[payload]" doc:name="Set customError" doc:id="9d61ef07-ee5d-4f1e-9d28-d15972a14f0d" variableName="customError" />
+			<logger level="ERROR" doc:name="Error Logger" doc:id="55e5e5c2-ac07-4a45-9c67-45acec54881d" message="Error message  captured #[payload]" />
+			<flow-ref doc:name="Call notification-sub-flow" doc:id="bc1e3f4c-9650-4619-b288-b3e71b30a767" name="notification-sub-flow"/>
+		
+</on-error-propagate>
+		        <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="5f9f1123-4004-4e46-a7cd-01b121e25249" type="SALESFORCE:CONNECTIVITY"> 
+            <set-variable value="503" doc:name="Set httpStatus" doc:id="49297c9a-1cf8-439e-ab04-5cc22d9eff9c" variableName="httpStatus"/>  
+            <flow-ref doc:name="common-error-sub-flow" doc:id="d648bc24-3c71-4872-abc3-6c0646bc8db0" name="common-error-sub-flow"/> 
+        </on-error-propagate>  
+        <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="16ed210a-c852-47c6-9474-e5e5098e79a1" type="SFAPP:INVALID_SUBSCRIBERKEY"> 
+            <set-variable value="400" doc:name="Set httpStatus" doc:id="12ca867b-7f54-41e2-922e-9fce1ef477ab" variableName="httpStatus"/>  
+            <ee:transform doc:name="error payload" doc:id="b0b97b86-083e-4681-ace3-35479138f1c0">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "status" : "failed",
+  "message": "error",
+  "timeStamp": now(),
+  "error": {
+  	reason: "Invalid SubscriberKey",
+  	description: "The provided user subscriber key is not valid"
+  },
+  "correlationId": correlationId
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<set-variable value="#[payload]" doc:name="Set customError" doc:id="cbad5c46-0019-4be2-8142-7e58d511814b" variableName="customError" />
+			<logger level="INFO" doc:name="Error Logger" doc:id="55ecbf0d-f96a-4a11-a5be-40e76069268a" message="Error message  captured #[payload]"/>
+			<flow-ref doc:name="Call notification-sub-flow" doc:id="20dfe0b7-3570-47b6-ae96-acfad71af54a" name="notification-sub-flow"/> 
+        
+</on-error-propagate>  
+        <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="b477dedf-2ce4-4e35-b290-e5f7c901fb53" type="SALESFORCE:INVALID_RESPONSE"> 
+            <set-variable value="501" doc:name="Set httpStatus" doc:id="1aa34a18-eafd-4044-9a9f-e83badc79fa2" variableName="httpStatus"/>  
+            <flow-ref doc:name="common-error-sub-flow" doc:id="273943b1-654a-46d8-89c0-dd3cb0f6ae8d" name="common-error-sub-flow"/> 
+        </on-error-propagate>  
+        <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="735abde3-a7f6-4b14-aca8-48891b2a8f07" type="SALESFORCE:NOT_FOUND"> 
+            <set-variable value="404" doc:name="Set httpStatus" doc:id="c86fb1f3-0e6c-49f5-b46f-d2dcadf4b770" variableName="httpStatus"/>  
+            <flow-ref doc:name="common-error-sub-flow" doc:id="75503113-37a7-4781-9257-d545e0eedc19" name="common-error-sub-flow"/> 
+        </on-error-propagate>  
+        <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="6fa44a7f-c868-4c4b-b163-d0e3aa3ded2e" type="SALESFORCE:RETRY_EXHAUSTED"> 
+            <set-variable value="503" doc:name="Set httpStatus" doc:id="f8082f2f-adc3-4bf3-94bc-06fbb76a57cb" variableName="httpStatus"/>  
+            <flow-ref doc:name="common-error-sub-flow" doc:id="ffba962f-4d19-45f6-82b1-0a2bfded463b" name="common-error-sub-flow"/> 
+        </on-error-propagate>  
+        <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="753bf994-51c7-41c8-b7ce-95644079a1bc" type="SALESFORCE:TIMEOUT"> 
+            <set-variable value="504" doc:name="Set httpStatus" doc:id="874a1dd8-cfc7-4765-9c8d-dc8def838a3c" variableName="httpStatus"/>  
+            <flow-ref doc:name="common-error-sub-flow" doc:id="2256eaca-85fa-4e0d-99ca-3406c46455e8" name="common-error-sub-flow"/> 
+        </on-error-propagate>  
+        <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="2909e5ca-5816-4ce2-a74e-e1fe9a7cf5cf" type="SALESFORCE:UNAVAILABLE"> 
+            <set-variable value="500" doc:name="Set httpStatus" doc:id="1842c580-3402-41ce-a6cd-9f919a3e12d7" variableName="httpStatus"/>  
+            <flow-ref doc:name="common-error-sub-flow" doc:id="12e79932-a1f9-4780-9c1b-66109e977341" name="common-error-sub-flow"/> 
+        </on-error-propagate>  
+        <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="69b1c026-3a00-4c81-8854-6562d5052dc3" type="SALESFORCE:LIMIT_EXCEEDED"> 
+            <set-variable value="500" doc:name="Set httpStatus" doc:id="dbac2951-5d33-4c11-b0db-4a16b8902c41" variableName="httpStatus"/>  
+            <flow-ref doc:name="common-error-sub-flow" doc:id="f6ca860e-f00e-4e66-a897-56452bf806f9" name="common-error-sub-flow"/> 
+        </on-error-propagate>  
+        <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="8dee1a43-9a11-4087-94db-9b5f1a303a6b" type="SALESFORCE:MUTUAL_AUTHENTICATION_FAILED"> 
+            <set-variable value="404" doc:name="Set httpStatus" doc:id="90e8d110-6147-4840-973c-a52e414b4372" variableName="httpStatus"/>  
+            <flow-ref doc:name="common-error-sub-flow" doc:id="710d888f-97fa-41c7-9a1b-948ea1b7326c" name="common-error-sub-flow"/> 
+        </on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="4e27294a-2b09-4fba-b977-44754ef82461" type="EXPRESSION">
+			<set-variable value="500" doc:name="Set httpStatus" doc:id="711ee00a-9b36-4803-af16-37704b726caf" variableName="httpStatus"/>
+			<flow-ref doc:name="common-error-sub-flow" doc:id="df4ba37a-e6e2-4dc4-ab40-cafc30622507" name="common-error-sub-flow"/>
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="3128701a-8b9e-45e6-bd3e-11766274f77b" type="ANY">
+			<set-variable value="500" doc:name="Set httpStatus" doc:id="87d8993b-3fab-4645-9b35-389e02992ba9" variableName="httpStatus" />
+			<flow-ref doc:name="common-error-sub-flow" doc:id="2881b086-808f-47fb-b833-aa2b5b764865" name="common-error-sub-flow" />
+		</on-error-propagate> 
+	
+</error-handler>
+	<sub-flow name="common-error-sub-flow" doc:id="080d8a1d-217d-4822-ae42-da986bad4651"> 
+        <ee:transform doc:name="Final Error Response" doc:id="5aae9fc2-d6fe-4cef-aa80-74794e2c45e5"> 
+            <ee:message> 
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    successful: false,
+    correlationId: correlationId,
+    statusCode:vars.httpStatus,
+	errorType: error.errorType.namespace,
+	errorResponse: error.errorType.identifier,
+    errorDescription: error.description,
+    errorComponent: error.failingComponent
+}]]>    </ee:set-payload>
+            </ee:message> 
+        </ee:transform>  
+        <set-variable value="#[payload]" doc:name="Set checkError" doc:id="47cc7b44-9433-4497-93bd-2020996b9671" variableName="checkError"/>
+		<logger level="ERROR" doc:name="Error Logger" doc:id="ec3e23fb-e8a3-40e9-b748-ef2119bdb87c" message="Error message  captured #[correlationId]" />
+		<flow-ref doc:name="call notification-sub-flow" doc:id="30d21228-dfd0-4d5b-9640-d8a754083cfc" name="notification-sub-flow"/> 
+    
+</sub-flow> 
+    
+	<sub-flow name="notification-sub-flow" doc:id="f25872a4-5b37-4a63-bbb9-cd8a4524e9dc" >
+		<logger level="INFO" doc:name="Start mail flow log" doc:id="63ae3fcc-2858-448c-b5f0-71cfb8e591f9" message='#[output json&#10;---&#10;{&#10;	message : "Flow started in " ++ flow.name,&#10;	timeStamp: now(),&#10;	correlationId: correlationId&#10;}]'/>
+    
+		<choice doc:name="Check notification Status" doc:id="b249cd0e-8568-482f-b1a5-8035d528cc7d" >
+			<when expression="#[!isEmpty(vars.checkError)]">
+				<parse-template doc:name="Parse failure payload" doc:id="e8515c92-f076-4af3-8aa6-89a9fe51b80a">
+					<content >&lt;html&gt;
+  &lt;head&gt;
+	&lt;style&gt;
+      th {
+        background-color: #FF5050;
+        color: black;
+        padding: 10px;
+		border: 2px solid black;
+      }
+      td {
+        padding: 8px;
+		border: 2px solid black;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      p {
+		color: black;
+	  }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;p&gt;This mail is to notify that copperfox-gov-sync-papi has failed due to the below attached error:&lt;/p&gt;
+  &lt;table&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Successful&lt;/th&gt;
+      &lt;th&gt;Correlation Id&lt;/th&gt;
+      &lt;th&gt;Status Code&lt;/th&gt;
+      &lt;th&gt;Error Type&lt;/th&gt;
+      &lt;th&gt;Error Response&lt;/th&gt;
+      &lt;th&gt;Error Description&lt;/th&gt;
+    &lt;/tr&gt;
+
+    &lt;tr&gt;
+      &lt;td&gt;#[payload['successful']]&lt;/td&gt;
+      &lt;td&gt;#[payload['correlationId']]&lt;/td&gt;
+      &lt;td&gt;#[payload['statusCode']]&lt;/td&gt;
+      &lt;td&gt;#[payload['errorType']]&lt;/td&gt;
+      &lt;td&gt;#[payload['errorResponse']]&lt;/td&gt;
+      &lt;td&gt;#[payload['errorDescription']]&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/table&gt;
+&lt;/body&gt;
+&lt;/html&gt;</content>
+
+		</parse-template>
+			</when>
+			<when expression="#[!isEmpty(vars.customError)]">
+				<parse-template doc:name="Parse customError payload" doc:id="9a03465a-b3e6-4fca-a27d-456bd5ff9807" >
+					<content >&lt;html&gt;
+  &lt;head&gt;
+    &lt;style&gt;
+      th {
+        background-color: #FF5050;
+        color: black;
+        padding: 10px;
+		border: 2px solid black;
+      }
+      td {
+        padding: 8px;
+		border: 2px solid black;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+	  p {
+		color: black;
+	  }
+    &lt;/style&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+	  &lt;p&gt;This mail is to notify that copperfox-gov-sync-papi has failed due to the below attached error:&lt;/p&gt;
+  &lt;table border=4&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Status&lt;/th&gt;
+      &lt;th&gt;Message&lt;/th&gt;
+      &lt;th&gt;Time Stamp&lt;/th&gt;
+      &lt;th&gt;Error Reason&lt;/th&gt;
+      &lt;th&gt;Error Description&lt;/th&gt;
+      &lt;th&gt;CorrelationId&lt;/th&gt;
+    &lt;/tr&gt;
+
+    &lt;tr&gt;
+      &lt;td&gt;#[payload['status']]&lt;/td&gt;
+      &lt;td&gt;#[payload['message']]&lt;/td&gt;
+      &lt;td&gt;#[payload['timeStamp']]&lt;/td&gt;
+      &lt;td&gt;#[payload['error']['reason']]&lt;/td&gt;
+      &lt;td&gt;#[payload['error']['description']]&lt;/td&gt;
+      &lt;td&gt;#[payload['correlationId']]&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/table&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</content>
+				</parse-template>
+			</when>
+			<otherwise >
+				<parse-template doc:name="Parse success payload" doc:id="3509a96f-706d-4d9a-8174-abec4a2ec4c7" >
+					<content >&lt;html&gt;
+  &lt;head&gt;
+    &lt;style&gt;
+      th {
+        background-color: lightgreen;
+        color: green;
+        padding: 10px;
+		border: 2px solid black;
+      }
+      td {
+        padding: 8px;
+		border: 2px solid black;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      p {
+		color: black;
+	  }
+      
+    &lt;/style&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+  	&lt;p&gt;
+    	This mail is to notify that copperfox-gov-sync-papi Process Completed Successfully.
+    &lt;/p&gt;
+    &lt;table border=4&gt;
+      &lt;tr&gt;
+        &lt;th&gt;Status&lt;/th&gt;
+        &lt;th&gt;Message&lt;/th&gt;
+        &lt;th&gt;Correlation Id&lt;/th&gt;
+        &lt;th&gt;Time Stamp&lt;/th&gt;
+      &lt;/tr&gt;
+
+      &lt;tr&gt;
+        &lt;td&gt;#[payload['status']]&lt;/td&gt;
+        &lt;td&gt;#[payload['message']]&lt;/td&gt;
+        &lt;td&gt;#[payload['correlationId']]&lt;/td&gt;
+        &lt;td&gt;#[payload['timeStamp']]&lt;/td&gt;
+      &lt;/tr
+    &lt;/table&gt;
+  &lt;/body&gt;
+&lt;/html&gt;</content>
+				</parse-template>
+			</otherwise>
+		</choice>
+		<try doc:name="Try" doc:id="ab4a5267-bee0-45da-8de8-8d2d4086ba61" >
+			<email:send doc:name="Send Error Notification" doc:id="cbd8351d-653c-4885-8b4c-8444482a0688" config-ref="Email_SMTP" fromAddress="${mail.fromAddress}" subject="${mail.subject}" toAddresses="#[output json&#10;---&#10;(p('mail.toAddress') splitBy &quot;,&quot;)]">
+			<email:body contentType="${mail.contentType}">
+			</email:body>
+		</email:send>
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="550453d9-ca7a-4cc9-9dc1-58b0ed3e44ec" >
+					<logger level="ERROR" doc:name="Error Log of mail" doc:id="26e71906-3fc4-4ce8-96d6-09cc0da6368d" message="#[output json&#10;---&#10; {&#10;    correlationId: correlationId,&#10;	errorType: error.errorType.namespace,&#10;	errorResponse: error.errorType.identifier,&#10;    errorDescription: error.description&#10;  }]" />
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<logger level="INFO" doc:name="End mail flow log" doc:id="a70115de-9158-411a-8b09-eed0acc2a0ff" message='#[output json&#10;---&#10;{&#10;	message : "Flow ended in " ++ flow.name,&#10;	timeStamp: now(),&#10;	correlationId: correlationId&#10;}]'/>
+	</sub-flow>
+</mule>

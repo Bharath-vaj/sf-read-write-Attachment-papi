@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_8080d0b3_1373_4eef_83eb_94200310675e_Output_Variables_contentDocId = Array<String | Null>
+
